@@ -1,0 +1,283 @@
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------- */
+/* HireGen AI design tokens                                               */
+/* Source: brand guidelines + design-system export (light mode, exact).   */
+/* Dark mode derived consistently around the navy brand color.            */
+/* ---------------------------------------------------------------------- */
+
+:root {
+  /* Raw brand palette */
+  --brand-navy-900: #03123d;
+  --brand-navy-800: #0a1d50;
+  --brand-navy-700: #14296b;
+  --brand-blue-600: #0053fe;
+  --brand-blue-500: #2e71fe;
+  --brand-blue-100: #e3ecff;
+  --brand-violet-600: #6e1eee;
+  --brand-violet-500: #8a47f2;
+  --brand-violet-100: #eee6fe;
+  --brand-lilac-400: #b69ff0;
+  --brand-lilac-100: #f0eafd;
+
+  /* Neutrals */
+  --neutral-white: #ffffff;
+  --neutral-offwhite: #f5f6f8;
+  --neutral-200: #e4e7ec;
+  --neutral-300: #cdd2da;
+  --neutral-500: #5b6472;
+  --neutral-700: #3a4250;
+  --neutral-sunken: #edeff3;
+
+  /* Status */
+  --status-success-600: #1f9d55;
+  --status-success-100: #e4f5eb;
+  --status-warning-600: #d9a404;
+  --status-warning-100: #fbf2da;
+  --status-error-600: #d92d20;
+  --status-error-100: #fbe5e3;
+
+  /* Action states */
+  --action-primary-hover: #0044d6;
+  --action-primary-active: #003ab4;
+  --action-accent-hover: #5c15ce;
+
+  /* Semantic surfaces (light) */
+  --sem-canvas: var(--neutral-offwhite);
+  --sem-surface: var(--neutral-white);
+  --sem-sunken: var(--neutral-sunken);
+  --sem-sidebar: var(--brand-navy-900);
+
+  /* Semantic text (light) */
+  --sem-heading: var(--brand-navy-900);
+  --sem-ink: var(--neutral-700);
+  --sem-muted: var(--neutral-500);
+  --sem-inverse: var(--neutral-white);
+
+  /* Semantic borders (light) */
+  --sem-line: var(--neutral-200);
+  --sem-line-strong: var(--neutral-300);
+
+  /* Semantic actions (light) */
+  --sem-primary: var(--brand-blue-600);
+  --sem-primary-hover: var(--action-primary-hover);
+  --sem-primary-active: var(--action-primary-active);
+  --sem-accent: var(--brand-violet-600);
+  --sem-accent-hover: var(--action-accent-hover);
+
+  /* Score / risk tiers (light) */
+  --sem-score-strong: var(--status-success-600);
+  --sem-score-strong-bg: var(--status-success-100);
+  --sem-score-review: var(--status-warning-600);
+  --sem-score-review-bg: var(--status-warning-100);
+  --sem-score-weak: var(--status-error-600);
+  --sem-score-weak-bg: var(--status-error-100);
+
+  /* Shadows (light) */
+  --shadow-xs: 0 1px 2px rgba(3, 18, 61, 0.06);
+  --shadow-sm: 0 1px 3px rgba(3, 18, 61, 0.08), 0 1px 2px rgba(3, 18, 61, 0.04);
+  --shadow-md: 0 4px 12px rgba(3, 18, 61, 0.08);
+  --shadow-lg: 0 12px 28px rgba(3, 18, 61, 0.12);
+  --shadow-drawer: -12px 0 32px rgba(3, 18, 61, 0.14);
+  --ring-accent: 0 0 0 3px rgba(110, 30, 238, 0.28);
+  --ring-primary: 0 0 0 3px rgba(0, 83, 254, 0.2);
+
+  /* Layout */
+  --layout-sidebar: 244px;
+  --layout-topbar: 60px;
+  --layout-drawer: 420px;
+  --layout-content-max: 1440px;
+
+  /* Categorical chart palette (light) — ordered dark-to-vivid for contrast on white cards */
+  --chart-1: var(--brand-navy-900);
+  --chart-2: var(--brand-navy-700);
+  --chart-3: var(--brand-blue-600);
+  --chart-4: var(--brand-blue-500);
+  --chart-5: var(--brand-violet-600);
+
+  color-scheme: light;
+}
+
+.dark {
+  --sem-canvas: #070b1a;
+  --sem-surface: #0f1730;
+  --sem-sunken: #0a1226;
+  --sem-sidebar: #03071a;
+
+  --sem-heading: #f5f6f8;
+  --sem-ink: #dfe3ea;
+  --sem-muted: #9aa3b2;
+  --sem-inverse: var(--brand-navy-900);
+
+  --sem-line: rgba(255, 255, 255, 0.08);
+  --sem-line-strong: rgba(255, 255, 255, 0.16);
+
+  --sem-primary: var(--brand-blue-500);
+  --sem-primary-hover: #518bff;
+  --sem-primary-active: #79a4ff;
+  --sem-accent: var(--brand-violet-500);
+  --sem-accent-hover: #a06cf7;
+
+  --sem-score-strong: #3ddc84;
+  --sem-score-strong-bg: rgba(31, 157, 85, 0.18);
+  --sem-score-review: #f2c94c;
+  --sem-score-review-bg: rgba(217, 164, 4, 0.18);
+  --sem-score-weak: #f87171;
+  --sem-score-weak-bg: rgba(217, 45, 32, 0.18);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.5);
+  --shadow-drawer: -12px 0 32px rgba(0, 0, 0, 0.5);
+  --ring-accent: 0 0 0 3px rgba(138, 71, 242, 0.35);
+  --ring-primary: 0 0 0 3px rgba(46, 113, 254, 0.3);
+
+  /* Categorical chart palette (dark) — navy tones swapped out, they vanish on dark cards */
+  --chart-1: var(--brand-lilac-400);
+  --chart-2: var(--brand-blue-500);
+  --chart-3: var(--brand-blue-600);
+  --chart-4: var(--brand-violet-500);
+  --chart-5: var(--brand-violet-600);
+
+  color-scheme: dark;
+}
+
+@theme {
+  --font-display: "Montserrat", "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Inter", "Calibri", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  /* Brand palette exposed as utilities (bg-brand-navy-900, text-brand-violet-600, ...) */
+  --color-brand-navy-900: var(--brand-navy-900);
+  --color-brand-navy-800: var(--brand-navy-800);
+  --color-brand-navy-700: var(--brand-navy-700);
+  --color-brand-blue-600: var(--brand-blue-600);
+  --color-brand-blue-500: var(--brand-blue-500);
+  --color-brand-blue-100: var(--brand-blue-100);
+  --color-brand-violet-600: var(--brand-violet-600);
+  --color-brand-violet-500: var(--brand-violet-500);
+  --color-brand-violet-100: var(--brand-violet-100);
+  --color-brand-lilac-400: var(--brand-lilac-400);
+  --color-brand-lilac-100: var(--brand-lilac-100);
+
+  --color-success: var(--status-success-600);
+  --color-success-bg: var(--status-success-100);
+  --color-warning: var(--status-warning-600);
+  --color-warning-bg: var(--status-warning-100);
+  --color-error: var(--status-error-600);
+  --color-error-bg: var(--status-error-100);
+
+  /* Semantic utilities (bg-canvas, text-heading, border-line, ...) */
+  --color-canvas: var(--sem-canvas);
+  --color-surface: var(--sem-surface);
+  --color-sunken: var(--sem-sunken);
+  --color-sidebar: var(--sem-sidebar);
+
+  --color-heading: var(--sem-heading);
+  --color-ink: var(--sem-ink);
+  --color-muted: var(--sem-muted);
+  --color-inverse: var(--sem-inverse);
+
+  --color-line: var(--sem-line);
+  --color-line-strong: var(--sem-line-strong);
+
+  --color-primary: var(--sem-primary);
+  --color-primary-hover: var(--sem-primary-hover);
+  --color-primary-active: var(--sem-primary-active);
+  --color-accent: var(--sem-accent);
+  --color-accent-hover: var(--sem-accent-hover);
+
+  --color-score-strong: var(--sem-score-strong);
+  --color-score-strong-bg: var(--sem-score-strong-bg);
+  --color-score-review: var(--sem-score-review);
+  --color-score-review-bg: var(--sem-score-review-bg);
+  --color-score-weak: var(--sem-score-weak);
+  --color-score-weak-bg: var(--sem-score-weak-bg);
+
+  /* Radius scale */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  /* Type scale (paired line-heights via Tailwind v4 --text-*--line-height) */
+  --text-display: 2.5rem;
+  --text-display--line-height: 1.2;
+  --text-h1: 1.875rem;
+  --text-h1--line-height: 1.28;
+  --text-h2: 1.375rem;
+  --text-h2--line-height: 1.28;
+  --text-h3: 1.0625rem;
+  --text-h3--line-height: 1.28;
+  --text-body-lg: 1rem;
+  --text-body-lg--line-height: 1.5;
+  --text-body-md: 0.875rem;
+  --text-body-md--line-height: 1.5;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.5;
+
+  --tracking-eyebrow: 0.14em;
+
+  /* Motion */
+  --ease-standard: cubic-bezier(0.2, 0, 0.2, 1);
+  --ease-out-brand: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+  --duration-slow: 280ms;
+
+  /* Shadows exposed as utilities (shadow-xs..shadow-drawer) */
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --shadow-drawer: var(--shadow-drawer);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-line);
+  }
+  html {
+    font-family: var(--font-body);
+  }
+  body {
+    @apply bg-canvas text-ink;
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    color: var(--color-heading);
+  }
+  ::selection {
+    background: var(--brand-lilac-400);
+    color: var(--brand-navy-900);
+  }
+}
+
+@layer utilities {
+  .text-gradient-brand {
+    background-image: linear-gradient(90deg, #03123d 0%, #0053fe 52%, #6e1eee 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+  .bg-gradient-brand {
+    background-image: linear-gradient(90deg, #03123d 0%, #0053fe 52%, #6e1eee 100%);
+  }
+  .bg-gradient-brand-soft {
+    background-image: linear-gradient(90deg, #e3ecff 0%, #eee6fe 100%);
+  }
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+}
