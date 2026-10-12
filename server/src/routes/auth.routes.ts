@@ -72,6 +72,28 @@ authRouter.post(
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) throw new HttpError(401, "Invalid email or password.");
 
+    // Record the login for the owner's login history. A failure here must not
+    // block the user from signing in, so it is logged and otherwise ignored.
+    const forwardedFor = req.headers["x-forwarded-for"];
+    const ipAddress =
+      (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor)?.split(",")[0].trim() ||
+      req.socket.remoteAddress ||
+      null;
+    try {
+      await prisma.loginEvent.create({
+        data: {
+          userId: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          ipAddress,
+          userAgent: req.headers["user-agent"]?.slice(0, 500) ?? null,
+        },
+      });
+    } catch (err) {
+      console.error("Failed to record login event:", err);
+    }
+
     const token = signToken({ sub: user.id, role: user.role });
     res.cookie(AUTH_COOKIE_NAME, token, AUTH_COOKIE_OPTIONS);
     res.json(serializeUser(user));

@@ -88,6 +88,7 @@ model User {
   createdAt    DateTime @default(now())
 
   applications Application[]
+  loginEvents  LoginEvent[]
 
   @@map("users")
 }
@@ -241,4 +242,22 @@ model Notification {
   aiGenerated Boolean          @default(false)
 
   @@map("notifications")
+}
+
+// One row per successful login, so the owner can see who signed in and when.
+model LoginEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  email     String
+  role      UserRole
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("login_events")
 }
