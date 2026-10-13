@@ -27,7 +27,7 @@ const scoringWeightsSchema = z.object({
   education: z.number(),
 });
 
-const jobCreateSchema = z.object({
+const jobBaseSchema = z.object({
   title: z.string().min(1),
   department: z.string().min(1),
   location: z.string().min(1),
@@ -45,7 +45,17 @@ const jobCreateSchema = z.object({
   hiringManager: z.string(),
 });
 
-const jobUpdateSchema = jobCreateSchema.partial();
+// The frontend Job type treats these lists as optional, and the Create Job form
+// never sets them, so a new job defaults them to empty instead of rejecting it.
+const jobCreateSchema = jobBaseSchema.extend({
+  responsibilities: z.array(z.string()).default([]),
+  qualifications: z.array(z.string()).default([]),
+  screeningQuestions: z.array(z.string()).default([]),
+});
+
+// Built from the base schema (no defaults) so a partial update that omits a
+// list leaves the stored value untouched rather than resetting it to [].
+const jobUpdateSchema = jobBaseSchema.partial();
 
 jobsRouter.get(
   "/",
