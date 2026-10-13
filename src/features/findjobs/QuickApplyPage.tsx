@@ -406,7 +406,7 @@ export default function QuickApplyPage() {
                     )}
                   </div>
                 )}
-                <FieldError>{fileError ?? errors.resume}</FieldError>
+                <FieldError>{fileError ?? (uploadJob?.stage === "error" ? uploadJob.errorMessage : undefined) ?? errors.resume}</FieldError>
               </CardContent>
               <CardFooter className="justify-between">
                 <Button variant="outline" onClick={() => setStep(0)}>

@@ -320,7 +320,7 @@ export default function ApplyPage() {
                   )}
                 </div>
               )}
-              <FieldError>{fileError ?? errors.resume}</FieldError>
+              <FieldError>{fileError ?? (uploadJob?.stage === "error" ? uploadJob.errorMessage : undefined) ?? errors.resume}</FieldError>
             </div>
           )}
 

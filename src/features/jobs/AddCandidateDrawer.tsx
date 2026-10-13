@@ -21,7 +21,7 @@ const STAGE_LABEL: Record<ResumeUploadJob["stage"], string> = {
   error: "Failed",
 };
 
-const MAX_FILE_MB = 10;
+const MAX_FILE_MB = 4;
 const ACCEPTED_EXTENSIONS = [".pdf", ".doc", ".docx"];
 
 const EMPTY_PERSONAL: ApplicantPersonalInfo = { fullName: "", email: "", phone: "", location: "", linkedIn: "", github: "", portfolio: "" };
@@ -86,7 +86,7 @@ export function AddCandidateDrawer({
       return;
     }
     setFileError(undefined);
-    resumeScreeningService.screenResume(file.name, setUploadJob);
+    void resumeScreeningService.uploadResume(file, setUploadJob, { jobId: job.id });
   };
 
   const handleFiles = (fileList: FileList | null) => {
@@ -127,7 +127,7 @@ export function AddCandidateDrawer({
   };
 
   const handleSubmit = async () => {
-    if (!uploadJob || !validate()) return;
+    if (!uploadJob?.resumeFileId || !validate()) return;
     setSubmitting(true);
     try {
       const combinedSkills = Array.from(new Set([...background.skills, ...(uploadJob.extractedSkills ?? [])]));
@@ -137,7 +137,7 @@ export function AddCandidateDrawer({
         job
       );
 
-      const candidate = await candidatesService.createCandidate(
+      const created = await candidatesService.createCandidate(
         buildCandidateProfile({
           job,
           personalInfo,
@@ -149,6 +149,8 @@ export function AddCandidateDrawer({
         })
       );
 
+      // Link the stored resume to the new candidate; the server screens it against this job.
+      const candidate = await candidatesService.attachResume(created.id, uploadJob.resumeFileId);
       onCreated(candidate);
       handleOpenChange(false);
     } catch (error) {
@@ -238,7 +240,7 @@ export function AddCandidateDrawer({
                 )}
               </div>
             )}
-            <FieldError>{fileError ?? errors.resume}</FieldError>
+            <FieldError>{fileError ?? (uploadJob?.stage === "error" ? uploadJob.errorMessage : undefined) ?? errors.resume}</FieldError>
           </div>
 
           <div className="space-y-3 border-t border-line pt-4">
