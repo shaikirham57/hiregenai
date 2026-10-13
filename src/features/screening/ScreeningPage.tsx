@@ -1,4 +1,5 @@
-import { Fragment, useMemo, useState, type ChangeEvent, type DragEvent } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type DragEvent } from "react";
+import { Link } from "react-router-dom";
 import {
   CheckCircle2,
   ChevronDown,
@@ -31,11 +32,11 @@ import { Table, TableBody, TableCell, TableContainer, TableHead, TableHeadCell, 
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/DropdownMenu";
 import { KpiTile } from "@/components/charts/KpiTile";
 import * as resumeScreeningService from "@/services/resumeScreeningService";
-import { JOB_OPTIONS } from "@/services/resumeScreeningService";
+import * as jobsService from "@/services/jobsService";
 import { useToast } from "@/hooks/useToast";
 import { cn, formatFileSize } from "@/lib/utils";
 import { colorForSeed } from "@/lib/constants";
-import type { ResumeUploadJob } from "@/types";
+import type { Job, ResumeUploadJob } from "@/types";
 
 const PROCESSING_STAGE_LABEL: Record<ResumeUploadJob["stage"], string> = {
   uploading: "Uploading...",
@@ -197,7 +198,11 @@ function SummaryStat({ label, value, tone }: { label: string; value: number; ton
 
 export default function ScreeningPage() {
   const { toast } = useToast();
-  const [selectedJobId, setSelectedJobId] = useState(JOB_OPTIONS[0].id);
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobsStatus, setJobsStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [selectedJobId, setSelectedJobId] = useState("");
+  // The File objects for queued resumes, keyed by batch item id, so their real content can be screened.
+  const filesRef = useRef(new Map<string, File>());
   const [batch, setBatch] = useState<BatchItem[]>([]);
   const [decisions, setDecisions] = useState<Record<string, Decision>>({});
   const [dragActive, setDragActive] = useState(false);
@@ -216,7 +221,26 @@ export default function ScreeningPage() {
   const [skillFilter, setSkillFilter] = useState("all");
   const [sortBy, setSortBy] = useState<SortOption>("scoreDesc");
 
-  const jobTitleFor = (jobId?: string) => JOB_OPTIONS.find((j) => j.id === jobId)?.title ?? "—";
+  const loadJobs = useCallback(async () => {
+    setJobsStatus("loading");
+    try {
+      const data = await jobsService.getJobs();
+      // Closed roles aren't hiring, so they aren't offered for screening.
+      const screenable = data.filter((j) => j.status !== "closed");
+      setJobs(screenable);
+      setSelectedJobId((current) => (screenable.some((j) => j.id === current) ? current : (screenable[0]?.id ?? "")));
+      setJobsStatus("ready");
+    } catch {
+      setJobsStatus("error");
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadJobs();
+  }, [loadJobs]);
+
+  const jobTitleFor = (jobId?: string) => jobs.find((j) => j.id === jobId)?.title ?? "—";
+  const hasJobs = jobsStatus === "ready" && jobs.length > 0;
 
   const validateFile = (file: File): string | undefined => {
     const ext = "." + file.name.split(".").pop()?.toLowerCase();
@@ -244,8 +268,10 @@ export default function ScreeningPage() {
         firstError = firstError ?? validationError;
         return;
       }
+      const itemId = `batch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      filesRef.current.set(itemId, file);
       accepted.push({
-        id: `batch-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        id: itemId,
         fileName: file.name,
         fileSize: file.size,
         status: "queued",
@@ -275,6 +301,7 @@ export default function ScreeningPage() {
   };
 
   const removeItem = (id: string) => {
+    filesRef.current.delete(id);
     setBatch((prev) => prev.filter((b) => b.id !== id));
     setSelectedIds((prev) => {
       if (!prev.has(id)) return prev;
@@ -291,6 +318,7 @@ export default function ScreeningPage() {
   };
 
   const removeSelected = () => {
+    selectedIds.forEach((id) => filesRef.current.delete(id));
     setBatch((prev) => prev.filter((b) => !selectedIds.has(b.id)));
     setSelectedIds(new Set());
   };
@@ -318,7 +346,7 @@ export default function ScreeningPage() {
     });
   };
 
-  const applyUpdate = (id: string, jobId: string, update: ResumeUploadJob) => {
+  const applyUpdate = (id: string, jobId: string, update: resumeScreeningService.ScreenedResume) => {
     setBatch((prev) =>
       prev.map((b) => {
         if (b.id !== id) return b;
@@ -326,9 +354,9 @@ export default function ScreeningPage() {
           return { ...b, status: "failed", progress: update.progress, stageLabel: "Failed", errorMessage: update.errorMessage, jobId };
         }
         if (update.stage === "done") {
-          const targetJob = JOB_OPTIONS.find((j) => j.id === jobId);
+          // Matched and missing skills are computed by the API against the job's real requirements.
           const matchedSkills = update.matchedSkills ?? [];
-          const missingSkills = targetJob ? targetJob.skills.filter((s) => !matchedSkills.includes(s)) : [];
+          const missingSkills = update.missingSkills ?? [];
           return {
             ...b,
             status: "completed",
@@ -351,15 +379,23 @@ export default function ScreeningPage() {
   };
 
   const runItem = async (item: BatchItem, jobId: string) => {
-    await resumeScreeningService.screenResume(item.fileName, (update) => applyUpdate(item.id, jobId, update), {
-      jobId,
-      fileSize: item.fileSize,
-    });
+    const file = filesRef.current.get(item.id);
+    if (!file) {
+      applyUpdate(item.id, jobId, {
+        id: item.id,
+        fileName: item.fileName,
+        stage: "error",
+        progress: 0,
+        errorMessage: "File is no longer available. Remove it and upload it again.",
+      });
+      return;
+    }
+    await resumeScreeningService.screenResumeFile(file, jobId, (update) => applyUpdate(item.id, jobId, update));
   };
 
   const screenAll = async () => {
     const queued = batch.filter((b) => b.status === "queued");
-    if (queued.length === 0 || isScreening) return;
+    if (queued.length === 0 || isScreening || !selectedJobId) return;
 
     const jobId = selectedJobId;
     setActiveJobId(jobId);
@@ -510,20 +546,42 @@ export default function ScreeningPage() {
           </CardHeader>
           <CardContent className="pt-4">
             <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-eyebrow text-primary">Step 1 — Choose a job</p>
-            <Select value={selectedJobId} onValueChange={setSelectedJobId} disabled={isScreening}>
+            <Select value={selectedJobId} onValueChange={setSelectedJobId} disabled={isScreening || !hasJobs}>
               <SelectTrigger className="w-full sm:w-[300px]">
-                <SelectValue />
+                <SelectValue
+                  placeholder={jobsStatus === "loading" ? "Loading jobs..." : jobsStatus === "error" ? "Couldn't load jobs" : "No jobs yet"}
+                />
               </SelectTrigger>
               <SelectContent>
-                {JOB_OPTIONS.map((opt) => (
+                {jobs.map((opt) => (
                   <SelectItem key={opt.id} value={opt.id}>
                     {opt.title}
+                    {opt.status !== "open" ? ` (${opt.status[0].toUpperCase()}${opt.status.slice(1)})` : ""}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <div className="mt-2">
-              {isScreening ? (
+              {jobsStatus === "loading" ? (
+                <Badge variant="neutral">
+                  <Loader2 className="size-3 animate-spin" /> Loading your jobs...
+                </Badge>
+              ) : jobsStatus === "error" ? (
+                <p className="text-[12.5px] text-error">
+                  Couldn't load your jobs.{" "}
+                  <button type="button" className="font-semibold text-primary hover:underline" onClick={() => void loadJobs()}>
+                    Try again
+                  </button>
+                </p>
+              ) : !hasJobs ? (
+                <p className="text-[12.5px] text-muted">
+                  You haven't created any jobs yet. Resumes are screened against a job's skills and description, so{" "}
+                  <Link to="/jobs/new" className="font-semibold text-primary hover:underline">
+                    create a job in Job Management
+                  </Link>{" "}
+                  first.
+                </p>
+              ) : isScreening ? (
                 <Badge variant="neutral">Role locked for this batch: {jobTitleFor(activeJobId)}</Badge>
               ) : (
                 <Badge variant="primary">Screening for: {selectedJobTitle}</Badge>
@@ -682,7 +740,7 @@ export default function ScreeningPage() {
                           ? `${failedCount} resume${failedCount === 1 ? "" : "s"} failed — retry from the row menu`
                           : "All resumes in this batch have been screened"}
                   </p>
-                  <Button onClick={screenAll} disabled={queuedCount === 0 || isScreening} loading={isScreening} variant="gradient">
+                  <Button onClick={screenAll} disabled={queuedCount === 0 || isScreening || !selectedJobId} loading={isScreening} variant="gradient">
                     <Sparkles className="size-4" />
                     Screen Resumes with AI{queuedCount > 0 && !isScreening ? ` (${queuedCount})` : ""}
                   </Button>

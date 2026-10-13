@@ -1,35 +1,7 @@
 import type { ResumeUploadJob } from "@/types";
 import { sleep } from "@/lib/utils";
-import { api } from "@/lib/api";
-
-export interface ScreeningJobOption {
-  id: string;
-  title: string;
-  skills: string[];
-}
-
-export const JOB_OPTIONS: ScreeningJobOption[] = [
-  {
-    id: "ai-engineer",
-    title: "AI Engineer",
-    skills: ["Python", "Machine Learning", "TensorFlow", "PyTorch", "MLOps", "AWS", "Docker"],
-  },
-  {
-    id: "genai-engineer",
-    title: "Generative AI Engineer",
-    skills: ["Python", "LLM", "Prompt Engineering", "LangChain", "PyTorch", "RAG", "Vector Databases"],
-  },
-  {
-    id: "python-developer",
-    title: "Python Developer",
-    skills: ["Python", "Django", "Flask", "REST APIs", "PostgreSQL", "Docker", "Git"],
-  },
-  {
-    id: "java-developer",
-    title: "Java Developer",
-    skills: ["Java", "Spring Boot", "Microservices", "REST APIs", "SQL", "Kubernetes", "Git"],
-  },
-];
+import { api, ApiError } from "@/lib/api";
+import { extractResumeText, ResumeReadError } from "@/lib/resumeText";
 
 interface ResumeAnalysis {
   candidateName: string;
@@ -109,6 +81,72 @@ export async function screenResume(
     matchScore: analysis.matchScore,
     matchedSkills: analysis.matchedSkills,
   };
+  onUpdate(job);
+  return job;
+}
+
+export interface ResumeScreeningResult {
+  candidateName: string;
+  extractedSkills: string[];
+  extractedEducation: string;
+  extractedExperienceYears: number;
+  requirements: string[];
+  matchedSkills: string[];
+  missingSkills: string[];
+  matchScore: number;
+  scoreBreakdown: { skills: number; experience: number; education: number };
+  narrative: string;
+}
+
+export type ScreenedResume = ResumeUploadJob & { missingSkills?: string[] };
+
+/**
+ * Screens a real resume file against a recruiter-created job: reads the file's
+ * text in the browser, then the API scores it against that job's description,
+ * required skills, seniority, and scoring weights from the database.
+ * Progress stages reflect the actual work being done.
+ */
+export async function screenResumeFile(
+  file: File,
+  jobId: string,
+  onUpdate: (job: ScreenedResume) => void
+): Promise<ScreenedResume> {
+  let job: ScreenedResume = {
+    id: `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    fileName: file.name,
+    stage: "uploading",
+    progress: 10,
+    fileSize: file.size,
+    jobId,
+  };
+  onUpdate(job);
+
+  try {
+    job = { ...job, stage: "extracting", progress: 40 };
+    onUpdate(job);
+    const text = await extractResumeText(file);
+
+    job = { ...job, stage: "vectorizing", progress: 75 };
+    onUpdate(job);
+    const result = await api.post<ResumeScreeningResult>("/ai/resume/screen", { jobId, fileName: file.name, text });
+
+    job = {
+      ...job,
+      stage: "done",
+      progress: 100,
+      candidateName: result.candidateName,
+      extractedSkills: result.extractedSkills,
+      extractedEducation: result.extractedEducation,
+      extractedExperienceYears: result.extractedExperienceYears,
+      matchScore: result.matchScore,
+      matchedSkills: result.matchedSkills,
+      missingSkills: result.missingSkills,
+    };
+  } catch (err) {
+    const message =
+      err instanceof ResumeReadError || err instanceof ApiError ? err.message : "Screening failed. Check your connection and retry.";
+    job = { ...job, stage: "error", errorMessage: message };
+  }
   onUpdate(job);
   return job;
 }
