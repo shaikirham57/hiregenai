@@ -96,6 +96,10 @@ export interface Candidate {
   employmentHistory: EmploymentHistoryEntry[];
   certifications: string[];
   resumeFileName: string;
+  /** Stored resume file, when the resume was uploaded (see /api/resumes). */
+  resumeFileId?: string;
+  /** Resume screening against the applied job's requirements, computed on submission. */
+  screening?: CandidateScreening;
   summaryBullets: string[];
   fitScore: FitScoreBreakdown;
   authenticity: { status: AuthenticityStatus; score: number };
@@ -170,6 +174,7 @@ export interface Application {
   background?: ApplicantBackground;
   screeningAnswers?: ScreeningAnswer[];
   resumeFileName?: string;
+  resumeFileId?: string;
   matchScore?: number;
   interviewDetails?: InterviewDetails;
 }
@@ -286,8 +291,33 @@ export interface AnalyticsSnapshot {
 
 export type ResumeParseStage = "uploading" | "extracting" | "vectorizing" | "done" | "error";
 
+export interface CandidateScreening {
+  jobId: string;
+  jobTitle: string;
+  screenedAt: string;
+  requirements: string[];
+  matchedSkills: string[];
+  missingSkills: string[];
+  extractedSkills: string[];
+  extractedEducation: string;
+  extractedExperienceYears: number;
+  matchScore: number;
+  scoreBreakdown: { skills: number; experience: number; education: number };
+  narrative: string;
+}
+
+export interface ResumeFileMeta {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  uploadedAt: string;
+}
+
 export interface ResumeUploadJob {
   id: string;
+  /** Set once the file is stored on the server. */
+  resumeFileId?: string;
   fileName: string;
   stage: ResumeParseStage;
   progress: number;

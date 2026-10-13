@@ -14,7 +14,6 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import * as jobsService from "@/services/jobsService";
 import * as applicationsService from "@/services/applicationsService";
 import * as resumeScreeningService from "@/services/resumeScreeningService";
-import * as aiScoringService from "@/services/aiScoringService";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/useToast";
 import { cn } from "@/lib/utils";
@@ -31,7 +30,7 @@ const STAGE_LABEL: Record<ResumeUploadJob["stage"], string> = {
   error: "Failed",
 };
 
-const MAX_FILE_MB = 10;
+const MAX_FILE_MB = 4;
 const ACCEPTED_EXTENSIONS = [".pdf", ".doc", ".docx"];
 
 const EMPTY_PERSONAL: ApplicantPersonalInfo = { fullName: "", email: "", phone: "", location: "", linkedIn: "", github: "", portfolio: "" };
@@ -129,7 +128,7 @@ export default function ApplyPage() {
       return;
     }
     setFileError(undefined);
-    resumeScreeningService.screenResume(file.name, setUploadJob);
+    if (job) void resumeScreeningService.uploadResume(file, setUploadJob, { jobId: job.id });
   };
 
   const handleFiles = (fileList: FileList | null) => {
@@ -158,26 +157,18 @@ export default function ApplyPage() {
   const removeSkill = (skill: string) => setBackground((prev) => ({ ...prev, skills: prev.skills.filter((s) => s !== skill) }));
 
   const handleSubmit = async () => {
-    if (!job || !user || !uploadJob) return;
+    if (!job || !user || !uploadJob?.resumeFileId) return;
     if (!validateStep(0) || !validateStep(1) || !validateStep(2) || !validateStep(3)) return;
 
     setSubmitting(true);
     try {
-      const combinedSkills = Array.from(new Set([...background.skills, ...(uploadJob.extractedSkills ?? [])]));
-
-      const fitScore = await aiScoringService.scoreCandidateAgainstJob(
-        { skills: combinedSkills, yearsExperience: background.yearsExperience, education: background.education },
-        job
-      );
-
+      // The server screens the stored resume against this job and computes the fit score.
       const application = await applicationsService.applyToJob(user.id, {
         job,
         personalInfo,
         background,
         screeningAnswers: questions.map((q, i) => ({ question: q, answer: screeningAnswers[`${i}`] ?? "" })),
-        resumeFileName: uploadJob.fileName,
-        extractedSkills: uploadJob.extractedSkills ?? [],
-        fitScore,
+        resumeFileId: uploadJob.resumeFileId,
       });
 
       navigate("/application-success", { state: { application, job } });

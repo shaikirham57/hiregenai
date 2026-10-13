@@ -1,4 +1,4 @@
-import type { Application, ApplicantPersonalInfo, ApplicantBackground, ScreeningAnswer, FitScoreBreakdown, Job } from "@/types";
+import type { Application, ApplicantPersonalInfo, ApplicantBackground, ScreeningAnswer, Job } from "@/types";
 import { api } from "@/lib/api";
 
 export async function getApplicationsByCandidateId(candidateId: string): Promise<Application[]> {
@@ -25,9 +25,7 @@ export interface ApplicationSubmission {
   personalInfo: ApplicantPersonalInfo;
   background: ApplicantBackground;
   screeningAnswers: ScreeningAnswer[];
-  resumeFileName: string;
-  extractedSkills: string[];
-  fitScore: FitScoreBreakdown;
+  resumeFileId: string;
 }
 
 /**
@@ -38,14 +36,12 @@ export interface ApplicationSubmission {
  */
 export async function applyToJob(candidateUserId: string, submission: ApplicationSubmission): Promise<Application> {
   void candidateUserId;
-  const { job, personalInfo, background, screeningAnswers, resumeFileName, extractedSkills, fitScore } = submission;
+  const { job, personalInfo, background, screeningAnswers, resumeFileId } = submission;
   return api.post<Application>("/applications", {
     jobId: job.id,
     personalInfo,
     background,
     screeningAnswers,
-    resumeFileName,
-    extractedSkills,
-    fitScore,
+    resumeFileId,
   });
 }

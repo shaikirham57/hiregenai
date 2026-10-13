@@ -280,3 +280,20 @@ export function screenResumeText(input: { fileName: string; text: string }, job:
     narrative: score.narrative,
   };
 }
+
+/** Screening input for a job row from the database. */
+export function toScreeningJob(job: {
+  title: string;
+  description: string;
+  skills: string[];
+  seniority: string;
+  scoringWeights: unknown;
+}): ScreeningJob {
+  return {
+    title: job.title,
+    description: job.description,
+    skills: job.skills,
+    seniority: job.seniority,
+    scoringWeights: job.scoringWeights as ScreeningJob["scoringWeights"],
+  };
+}

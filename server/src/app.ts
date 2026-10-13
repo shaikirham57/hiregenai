@@ -12,6 +12,7 @@ import { interviewsRouter } from "./routes/interviews.routes.js";
 import { notificationsRouter } from "./routes/notifications.routes.js";
 import { analyticsRouter } from "./routes/analytics.routes.js";
 import { aiRouter } from "./routes/ai.routes.js";
+import { resumesRouter } from "./routes/resumes.routes.js";
 
 export const app = express();
 
@@ -30,5 +31,6 @@ app.use("/api/interviews", interviewsRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/ai", aiRouter);
+app.use("/api/resumes", resumesRouter);
 
 app.use(errorHandler);

@@ -1,6 +1,6 @@
-import type { ResumeUploadJob } from "@/types";
+import type { ResumeFileMeta, ResumeUploadJob } from "@/types";
 import { sleep } from "@/lib/utils";
-import { api, ApiError } from "@/lib/api";
+import { api, ApiError, API_BASE_URL } from "@/lib/api";
 import { extractResumeText, ResumeReadError } from "@/lib/resumeText";
 
 interface ResumeAnalysis {
@@ -146,6 +146,89 @@ export async function screenResumeFile(
     const message =
       err instanceof ResumeReadError || err instanceof ApiError ? err.message : "Screening failed. Check your connection and retry.";
     job = { ...job, stage: "error", errorMessage: message };
+  }
+  onUpdate(job);
+  return job;
+}
+
+interface UploadedResume {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  uploadedAt: string;
+  analysis?: ResumeScreeningResult;
+}
+
+/** Link to the stored resume. The API checks the signed-in user's access via the session cookie. */
+export function resumeFileUrl(resumeFileId: string, download = false): string {
+  return `${API_BASE_URL}/resumes/${encodeURIComponent(resumeFileId)}/file${download ? "?download=1" : ""}`;
+}
+
+export async function getResumeFileMeta(resumeFileId: string): Promise<ResumeFileMeta> {
+  return api.get<ResumeFileMeta>(`/resumes/${encodeURIComponent(resumeFileId)}`);
+}
+
+/**
+ * Uploads a resume file so it is stored and can be viewed by recruiters. The
+ * server reads the file's text and, when a job is given, returns the skills it
+ * found and how they compare with that job's requirements.
+ */
+export async function uploadResume(
+  file: File,
+  onUpdate: (job: ResumeUploadJob) => void,
+  options?: { jobId?: string }
+): Promise<ResumeUploadJob> {
+  let job: ResumeUploadJob = {
+    id: `upload-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    fileName: file.name,
+    stage: "uploading",
+    progress: 20,
+    fileSize: file.size,
+    jobId: options?.jobId,
+  };
+  onUpdate(job);
+
+  if (!/\.(pdf|docx)$/i.test(file.name)) {
+    job = {
+      ...job,
+      stage: "error",
+      errorMessage: /\.doc$/i.test(file.name)
+        ? "Older .doc files can't be read. Save the resume as PDF or DOCX and upload it again."
+        : "Unsupported file type. Please upload a PDF or DOCX resume.",
+    };
+    onUpdate(job);
+    return job;
+  }
+
+  try {
+    const query = options?.jobId ? `?jobId=${encodeURIComponent(options.jobId)}` : "";
+    const request = fetch(`${API_BASE_URL}/resumes${query}`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/octet-stream", "X-File-Name": encodeURIComponent(file.name) },
+      body: file,
+    });
+    job = { ...job, stage: "extracting", progress: 60 };
+    onUpdate(job);
+    const res = await request;
+    const data = (await res.json().catch(() => undefined)) as (UploadedResume & { error?: string }) | undefined;
+    if (!res.ok || !data) throw new ApiError(res.status, data?.error ?? "Upload failed. Please try again.");
+
+    job = {
+      ...job,
+      stage: "done",
+      progress: 100,
+      resumeFileId: data.id,
+      candidateName: data.analysis?.candidateName,
+      extractedSkills: data.analysis?.extractedSkills ?? [],
+      extractedEducation: data.analysis?.extractedEducation,
+      extractedExperienceYears: data.analysis?.extractedExperienceYears,
+      matchScore: data.analysis?.matchScore,
+      matchedSkills: data.analysis?.matchedSkills,
+    };
+  } catch (err) {
+    job = { ...job, stage: "error", errorMessage: err instanceof ApiError ? err.message : "Upload failed. Check your connection and retry." };
   }
   onUpdate(job);
   return job;

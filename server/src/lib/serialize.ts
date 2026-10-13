@@ -65,6 +65,8 @@ export function serializeCandidate(candidate: Candidate) {
     employmentHistory: candidate.employmentHistory,
     certifications: candidate.certifications,
     resumeFileName: candidate.resumeFileName,
+    resumeFileId: candidate.resumeFileId ?? undefined,
+    screening: candidate.screening ?? undefined,
     summaryBullets: candidate.summaryBullets,
     fitScore: candidate.fitScore,
     authenticity: { status: candidate.authenticityStatus, score: candidate.authenticityScore },
@@ -93,6 +95,7 @@ export function serializeApplication(app: Application) {
     background: app.background ?? undefined,
     screeningAnswers: app.screeningAnswers ?? undefined,
     resumeFileName: app.resumeFileName ?? undefined,
+    resumeFileId: app.resumeFileId ?? undefined,
     matchScore: app.matchScore ?? undefined,
     interviewDetails: app.interviewDetails ?? undefined,
   };

@@ -34,7 +34,7 @@ const STAGE_LABEL: Record<ResumeUploadJob["stage"], string> = {
 
 const STEPS: StepperStep[] = [{ label: "Choose role" }, { label: "Resume" }, { label: "Details" }];
 
-const MAX_FILE_MB = 10;
+const MAX_FILE_MB = 4;
 const ACCEPTED_EXTENSIONS = [".pdf", ".doc", ".docx"];
 
 const EMPTY_PERSONAL: ApplicantPersonalInfo = { fullName: "", email: "", phone: "", location: "", linkedIn: "", github: "", portfolio: "" };
@@ -169,7 +169,7 @@ export default function QuickApplyPage() {
       return;
     }
     setFileError(undefined);
-    resumeScreeningService.screenResume(file.name, setUploadJob);
+    void resumeScreeningService.uploadResume(file, setUploadJob, { jobId: selectedJobId || undefined });
   };
 
   const handleFiles = (fileList: FileList | null) => {
@@ -228,7 +228,7 @@ export default function QuickApplyPage() {
   };
 
   const handleSubmit = async () => {
-    if (!user || !selectedJob || !uploadJob) return;
+    if (!user || !selectedJob || !uploadJob?.resumeFileId) return;
     if (!validate()) {
       toast({ title: "A few things need your attention", description: "Check the highlighted fields and try again.", variant: "error" });
       setReviewing(false);
@@ -237,21 +237,13 @@ export default function QuickApplyPage() {
 
     setSubmitting(true);
     try {
-      const combinedSkills = Array.from(new Set([...background.skills, ...(uploadJob.extractedSkills ?? [])]));
-
-      const finalFitScore = await aiScoringService.scoreCandidateAgainstJob(
-        { skills: combinedSkills, yearsExperience: background.yearsExperience, education: background.education },
-        selectedJob
-      );
-
+      // The server screens the stored resume against this job and computes the fit score.
       const application = await applicationsService.applyToJob(user.id, {
         job: selectedJob,
         personalInfo,
         background,
         screeningAnswers: questions.map((q, i) => ({ question: q, answer: screeningAnswers[`${i}`] ?? "" })),
-        resumeFileName: uploadJob.fileName,
-        extractedSkills: uploadJob.extractedSkills ?? [],
-        fitScore: finalFitScore,
+        resumeFileId: uploadJob.resumeFileId,
       });
 
       navigate("/application-success", { state: { application, job: selectedJob } });

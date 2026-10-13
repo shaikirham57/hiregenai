@@ -20,6 +20,8 @@ export interface CreateCandidateInput {
   employmentHistory: unknown;
   certifications: string[];
   resumeFileName: string;
+  resumeFileId?: string | null;
+  screening?: unknown;
   summaryBullets: string[];
   fitScore: unknown;
   authenticity: { status: "authentic" | "suspicious" | "high_risk"; score: number };
@@ -50,6 +52,8 @@ export async function createCandidateFromApplication(input: CreateCandidateInput
       employmentHistory: input.employmentHistory as object,
       certifications: input.certifications,
       resumeFileName: input.resumeFileName,
+      resumeFileId: input.resumeFileId ?? null,
+      screening: input.screening == null ? undefined : (input.screening as object),
       summaryBullets: input.summaryBullets,
       fitScore: input.fitScore as object,
       authenticityStatus: input.authenticity.status,

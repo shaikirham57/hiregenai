@@ -89,6 +89,7 @@ model User {
 
   applications Application[]
   loginEvents  LoginEvent[]
+  resumeFiles  ResumeFile[]
 
   @@map("users")
 }
@@ -143,6 +144,10 @@ model Candidate {
   languageTag       String
   stage             PipelineStage @default(applied)
   appliedAt         DateTime  @default(now())
+  resumeFileId      String?
+  resumeFile        ResumeFile? @relation(fields: [resumeFileId], references: [id], onDelete: SetNull)
+  /// Resume screening against the applied job's requirements (server/src/lib/resumeScreening.ts).
+  screening         Json?
 
   assessmentResults AssessmentResult[]
   interviews        Interview[]
@@ -169,6 +174,8 @@ model Application {
   background        Json?
   screeningAnswers  Json?
   resumeFileName    String?
+  resumeFileId      String?
+  resumeFile        ResumeFile?   @relation(fields: [resumeFileId], references: [id], onDelete: SetNull)
   matchScore        Float?
   interviewDetails  Json?
 
@@ -260,4 +267,25 @@ model LoginEvent {
   @@index([userId])
   @@index([createdAt])
   @@map("login_events")
+}
+
+/// An uploaded resume file, stored in the database so it survives serverless
+/// deploys. Linked from the Application and Candidate it was submitted with.
+model ResumeFile {
+  id           String   @id @default(cuid())
+  fileName     String
+  mimeType     String
+  sizeBytes    Int
+  data         Bytes
+  /// Plain text extracted from the file on upload, used for screening.
+  text         String
+  uploadedById String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+
+  applications Application[]
+  candidates   Candidate[]
+
+  @@index([uploadedById])
+  @@map("resume_files")
 }

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "../db.js";
 import { scoreCandidateAgainstJob } from "../lib/scoring.js";
 import { analyzeResume, JOB_OPTIONS } from "../lib/resumeAnalysis.js";
-import { screenResumeText, jobRequirements } from "../lib/resumeScreening.js";
+import { screenResumeText, jobRequirements, toScreeningJob } from "../lib/resumeScreening.js";
 import { asyncHandler, HttpError } from "../middleware/errorHandler.js";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 
@@ -73,13 +73,7 @@ aiRouter.post(
     if (input.text.trim().length < 50) {
       throw new HttpError(422, "Couldn't read enough text from this resume. If it's a scanned image, upload a text-based PDF or DOCX.");
     }
-    const screeningJob = {
-      title: job.title,
-      description: job.description,
-      skills: job.skills,
-      seniority: job.seniority,
-      scoringWeights: job.scoringWeights as { skills: number; experience: number; education: number },
-    };
+    const screeningJob = toScreeningJob(job);
     if (jobRequirements(screeningJob).length === 0) {
       throw new HttpError(422, `"${job.title}" has no required skills to screen against. Add skills or a skills list in its description in Job Management.`);
     }

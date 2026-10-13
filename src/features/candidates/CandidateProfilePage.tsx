@@ -16,6 +16,7 @@ import { FitScoreBar } from "@/components/ai/FitScoreBar";
 import { RiskBadge } from "@/components/ai/RiskBadge";
 import { StatusPill } from "@/components/ai/StatusPill";
 import { XaiDrawer } from "@/components/ai/XaiDrawer";
+import { CandidateResumeCard, CandidateScreeningCard } from "./CandidateResumeCards";
 import * as candidatesService from "@/services/candidatesService";
 import * as jobsService from "@/services/jobsService";
 import * as interviewsService from "@/services/interviewsService";
@@ -158,6 +159,9 @@ export default function CandidateProfilePage() {
               </div>
             </CardContent>
           </Card>
+
+          <CandidateResumeCard candidate={candidate} />
+          <CandidateScreeningCard candidate={candidate} />
 
           <Card>
             <CardHeader>
