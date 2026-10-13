@@ -160,7 +160,7 @@ export default function CandidateProfilePage() {
             </CardContent>
           </Card>
 
-          <CandidateResumeCard candidate={candidate} />
+          <CandidateResumeCard candidate={candidate} onCandidateUpdated={setCandidate} />
           <CandidateScreeningCard candidate={candidate} />
 
           <Card>

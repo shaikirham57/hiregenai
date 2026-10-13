@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
-import { AlertTriangle, Download, ExternalLink, FileText, ScanSearch } from "lucide-react";
+import { AlertTriangle, Download, ExternalLink, FileText, ScanSearch, Upload } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -8,6 +8,8 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { ApiError } from "@/lib/api";
 import { formatFileSize } from "@/lib/utils";
 import * as resumeScreeningService from "@/services/resumeScreeningService";
+import * as candidatesService from "@/services/candidatesService";
+import { useToast } from "@/hooks/useToast";
 import type { Candidate, ResumeFileMeta } from "@/types";
 
 type ResumeState =
@@ -17,8 +19,60 @@ type ResumeState =
   | { status: "missing" }
   | { status: "error"; message: string };
 
+/** Lets the recruiter attach a resume (e.g. one the candidate emailed) when none is stored. */
+function AttachResumeButton({ candidate, onAttached }: { candidate: Candidate; onAttached: (c: Candidate) => void }) {
+  const { toast } = useToast();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string>();
+
+  const handleFile = async (file: File | undefined) => {
+    if (!file) return;
+    setError(undefined);
+    if (file.size > 4 * 1024 * 1024) {
+      setError("File is too large. The maximum size is 4 MB.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const upload = await resumeScreeningService.uploadResume(file, () => {}, { jobId: candidate.appliedJobId });
+      if (upload.stage !== "done" || !upload.resumeFileId) throw new Error(upload.errorMessage ?? "Upload failed. Please try again.");
+      const updated = await candidatesService.attachResume(candidate.id, upload.resumeFileId);
+      onAttached(updated);
+      toast({ title: "Resume attached", description: `${file.name} was saved and screened against this candidate's job.`, variant: "success" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Upload failed. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mt-3">
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".pdf,.docx"
+        className="hidden"
+        onChange={(e) => {
+          void handleFile(e.target.files?.[0]);
+          e.target.value = "";
+        }}
+      />
+      <Button size="sm" variant="outline" loading={busy} onClick={() => inputRef.current?.click()}>
+        <Upload className="size-3.5" /> Upload resume
+      </Button>
+      <p className="mt-1.5 text-[12px] text-muted">
+        PDF or DOCX, up to 4 MB. The file is linked to this candidate and their application, and screened against their job. This replaces
+        the current fit score.
+      </p>
+      {error && <p className="mt-1.5 text-[12px] text-error">{error}</p>}
+    </div>
+  );
+}
+
 /** The candidate's stored resume, with View and Download actions, or a clear note when no file exists. */
-export function CandidateResumeCard({ candidate }: { candidate: Candidate }) {
+export function CandidateResumeCard({ candidate, onCandidateUpdated }: { candidate: Candidate; onCandidateUpdated?: (c: Candidate) => void }) {
   const [state, setState] = useState<ResumeState>(candidate.resumeFileId ? { status: "loading" } : { status: "not-stored" });
 
   useEffect(() => {
@@ -91,12 +145,13 @@ export function CandidateResumeCard({ candidate }: { candidate: Candidate }) {
               ) : candidate.resumeFileName ? (
                 <p className="text-muted">
                   Only the file name <span className="font-medium text-ink">{candidate.resumeFileName}</span> was recorded. This application was
-                  submitted before resume files were stored, so the file itself was never saved. Ask the candidate to share their resume or apply
-                  again.
+                  submitted before resume files were stored, so the file itself was never saved. Ask the candidate to send their resume, then
+                  upload it here.
                 </p>
               ) : (
                 <p className="text-muted">No resume was submitted for this candidate.</p>
               )}
+              {onCandidateUpdated && <AttachResumeButton candidate={candidate} onAttached={onCandidateUpdated} />}
             </div>
           </div>
         )}

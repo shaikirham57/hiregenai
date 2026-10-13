@@ -33,3 +33,8 @@ export async function searchCandidates(query: string, mode: "keyword" | "semanti
   void mode;
   return api.get<Candidate[]>(`/candidates/search?q=${encodeURIComponent(query)}`);
 }
+
+/** Attaches a resume the recruiter uploaded to an existing candidate; the server screens it against their job. */
+export async function attachResume(candidateId: string, resumeFileId: string): Promise<Candidate> {
+  return api.post<Candidate>(`/candidates/${encodeURIComponent(candidateId)}/resume`, { resumeFileId });
+}
