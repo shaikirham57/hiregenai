@@ -1,3 +1,12 @@
+# Runs HireGen AI locally with Docker.
+#
+#   Database only (for `npm run dev`):   docker compose up -d db
+#   Whole app (website + API + DB):      docker compose up -d --build
+#   Load demo data (first time):         docker compose exec backend npm run seed
+#
+# Website: http://localhost:8080 (change with WEB_PORT). Database: localhost:5432 (change with DB_PORT).
+# The AI key (OPENROUTER_API_KEY) is read from backend/.env when it exists.
+
 services:
   db:
     image: postgres:16-alpine
@@ -7,7 +16,7 @@ services:
       POSTGRES_PASSWORD: hiregen_dev_password
       POSTGRES_DB: hiregen
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - hiregen_pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -15,6 +24,34 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - path: ./backend/.env
+        required: false
+    environment:
+      DATABASE_URL: postgresql://hiregen:hiregen_dev_password@db:5432/hiregen?schema=public
+      JWT_SECRET: ${JWT_SECRET:-local-docker-secret-change-me}
+      PORT: "4000"
+      NODE_ENV: production
+      CLIENT_ORIGIN: http://localhost:${WEB_PORT:-8080}
+      # The local site runs over plain HTTP, so the login cookie must not require HTTPS.
+      COOKIE_SECURE: "false"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${WEB_PORT:-8080}:80"
 
 volumes:
   hiregen_pgdata:

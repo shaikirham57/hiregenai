@@ -19,7 +19,9 @@ hiregen-ai/
 │   │   └── types/            Shared TypeScript types
 │   ├── public/               Static files (favicon, icons)
 │   ├── index.html
-│   └── vite.config.ts
+│   ├── vite.config.ts
+│   ├── Dockerfile            Builds the website and serves it with nginx
+│   └── nginx.conf            Serves the site and forwards /api to the backend
 │
 ├── backend/                  ⚙️ BACKEND — Node.js + Express + Prisma + PostgreSQL
 │   ├── src/
@@ -33,12 +35,13 @@ hiregen-ai/
 │   │   ├── types/            Type declarations
 │   │   ├── app.ts            Express app setup
 │   │   └── index.ts          Local server entry point
-│   └── prisma/               Database schema, migrations, and seed data
+│   ├── prisma/               Database schema, migrations, and seed data
+│   └── Dockerfile            Builds and runs the API
 │
 ├── api/index.ts              ☁️ Vercel serverless entry (runs the backend in production)
 ├── scripts/                  Build-time database migration script
 ├── vercel.json               Vercel deploy config
-├── docker-compose.yml        Local PostgreSQL container
+├── docker-compose.yml        Runs the database, API, and website with Docker
 └── package.json              Root scripts and dependencies used by Vercel
 ```
 
@@ -48,14 +51,14 @@ hiregen-ai/
 | --- | --- |
 | Frontend | React 19, TypeScript, Vite, Tailwind CSS, Radix UI, React Hook Form, Zod, Recharts |
 | Backend | Node.js, Express, Prisma ORM, PostgreSQL, JWT (httpOnly cookie), bcrypt, PDF.js, Mammoth |
-| Deployment | Vercel (static frontend + serverless API) |
+| Deployment | Vercel (static frontend + serverless API), Docker (nginx + Node.js + PostgreSQL) |
 
 ## First-time setup
 
 1. **Start PostgreSQL** (requires Docker Desktop running):
 
    ```
-   docker compose up -d
+   docker compose up -d db
    ```
 
 2. **Backend**:
@@ -78,6 +81,21 @@ hiregen-ai/
    ```
 
    The app runs at `http://localhost:5173` and talks to the API via `VITE_API_URL` (see `frontend/.env`, defaults to `http://localhost:4000/api`).
+
+## Run with Docker
+
+Runs the whole app (website, API, and database) in containers. Requires Docker Desktop.
+
+```
+docker compose up -d --build
+docker compose exec backend npm run seed     # first time only: loads the demo data
+```
+
+Open **http://localhost:8080**. The API applies database migrations automatically when it starts.
+
+- If ports 8080 or 5432 are already in use, create a `.env` file next to `docker-compose.yml` with, for example, `WEB_PORT=8085` and `DB_PORT=5441`.
+- To enable the AI job description generator, put `OPENROUTER_API_KEY` in `backend/.env`.
+- Stop everything with `docker compose down` (add `-v` to also delete the database).
 
 ## Demo accounts
 

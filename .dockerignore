@@ -1,0 +1,15 @@
+# Used when building frontend/Dockerfile from the repository root.
+**/node_modules
+dist
+backend
+api
+scripts
+z-docs
+.agents
+.claude
+.vercel
+.git
+**/.env
+**/.env.*
+*.log
+*.tsbuildinfo
