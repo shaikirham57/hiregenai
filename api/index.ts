@@ -1,4 +1,4 @@
-import { app } from "../server/src/app.js";
+import { app } from "../backend/src/app.js";
 
 // Vercel's Node.js runtime accepts any (req, res) => void handler — an Express
 // app instance satisfies that directly, so no adapter is needed. vercel.json

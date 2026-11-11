@@ -2,9 +2,10 @@ node_modules/
 dist/
 .env
 .env.local
-server/.env
-server/dist/
+backend/.env
+backend/dist/
 *.log
 
 .vercel
 .env*
+*.tsbuildinfo

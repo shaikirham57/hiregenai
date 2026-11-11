@@ -2,11 +2,53 @@
 
 A recruitment SaaS demo: React + TypeScript frontend backed by a real Express + PostgreSQL API.
 
-## Project layout
+🔗 **Live demo:** https://hiregenai-eight.vercel.app
 
-- `/` — Vite + React frontend (unchanged UI/design)
-- `/server` — Express + Prisma + PostgreSQL backend
-- `docker-compose.yml` — local PostgreSQL container
+## Project structure
+
+```
+hiregen-ai/
+├── frontend/                 🎨 FRONTEND — React + TypeScript + Vite + Tailwind
+│   ├── src/
+│   │   ├── features/         Pages (jobs, candidates, screening, interviews, analytics…)
+│   │   ├── components/       Reusable UI components
+│   │   ├── services/         Calls to the backend API
+│   │   ├── contexts/         Auth, theme, and toast state
+│   │   ├── hooks/            Custom React hooks
+│   │   ├── lib/              Helpers (API client, utils)
+│   │   └── types/            Shared TypeScript types
+│   ├── public/               Static files (favicon, icons)
+│   ├── index.html
+│   └── vite.config.ts
+│
+├── backend/                  ⚙️ BACKEND — Node.js + Express + Prisma + PostgreSQL
+│   ├── src/
+│   │   ├── routes/           Endpoint list per resource (/api/auth, /api/jobs, …)
+│   │   ├── controllers/      Request handlers for each endpoint
+│   │   ├── services/         Business logic (resume screening, scoring, analytics…)
+│   │   ├── validators/       Zod request schemas
+│   │   ├── middleware/       Auth check and error handling
+│   │   ├── config/           Environment variables and database client
+│   │   ├── utils/            JWT, response serializers, HTTP helpers
+│   │   ├── types/            Type declarations
+│   │   ├── app.ts            Express app setup
+│   │   └── index.ts          Local server entry point
+│   └── prisma/               Database schema, migrations, and seed data
+│
+├── api/index.ts              ☁️ Vercel serverless entry (runs the backend in production)
+├── scripts/                  Build-time database migration script
+├── vercel.json               Vercel deploy config
+├── docker-compose.yml        Local PostgreSQL container
+└── package.json              Root scripts and dependencies used by Vercel
+```
+
+## Tech stack
+
+| Layer | Technologies |
+| --- | --- |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS, Radix UI, React Hook Form, Zod, Recharts |
+| Backend | Node.js, Express, Prisma ORM, PostgreSQL, JWT (httpOnly cookie), bcrypt, PDF.js, Mammoth |
+| Deployment | Vercel (static frontend + serverless API) |
 
 ## First-time setup
 
@@ -19,14 +61,14 @@ A recruitment SaaS demo: React + TypeScript frontend backed by a real Express + 
 2. **Backend**:
 
    ```
-   cd server
+   cd backend
    npm install
    npx prisma migrate dev
    npm run seed
    npm run dev
    ```
 
-   The API runs at `http://localhost:4000`. `server/.env` (copy from `.env.example`) holds `DATABASE_URL`, `JWT_SECRET`, `PORT`, and `CLIENT_ORIGIN`.
+   The API runs at `http://localhost:4000`. `backend/.env` (copy from `backend/.env.example`) holds `DATABASE_URL`, `JWT_SECRET`, `PORT`, and `CLIENT_ORIGIN`.
 
 3. **Frontend** (in a separate terminal, from the repo root):
 
@@ -35,11 +77,11 @@ A recruitment SaaS demo: React + TypeScript frontend backed by a real Express + 
    npm run dev
    ```
 
-   The app runs at `http://localhost:5173` and talks to the API via `VITE_API_URL` (see `.env`, defaults to `http://localhost:4000/api`).
+   The app runs at `http://localhost:5173` and talks to the API via `VITE_API_URL` (see `frontend/.env`, defaults to `http://localhost:4000/api`).
 
 ## Demo accounts
 
-Seeded by `npm run seed` (in `server/`):
+Seeded by `npm run seed` (in `backend/`):
 
 | Role | Email | Password |
 | --- | --- | --- |
